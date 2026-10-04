@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Look Here</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1B1F3B; --sun:#FFD23F; --pink:#FF3E7F; --mint:#3DDC97;
+  --sheet:#FFFFFF; --sheet-2:#F1F1F7; --text:#1B1F3B; --muted:#5D6285; --line:#DADBE8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  font-family:"Bricolage Grotesque",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sheet:#22263F; --sheet-2:#2C3150; --text:#F4F4FA; --muted:#A8ACC8; --line:#3A3F62;}}
+:root[data-theme="dark"]{--sheet:#22263F; --sheet-2:#2C3150; --text:#F4F4FA; --muted:#A8ACC8; --line:#3A3F62;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0;background:var(--ink);color:#fff;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* camera */
+#video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
+  background:#000;transition:filter .3s, opacity .3s}
+#video.hidden-face{filter:blur(28px) brightness(.5)}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#flash.go{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:.95}100%{opacity:0}}
+
+/* arrow */
+#arrowLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#arrowPos{position:absolute;transform-origin:0 0;transition:opacity .2s}
+#arrowPos.off{opacity:0}
+#arrowBob{position:absolute}
+#arrowBob.bounce{animation:bob .9s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(8px)}50%{transform:translateY(-8px)}}
+#arrowSvg{display:block;overflow:visible;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))}
+.chev{animation:chev 1s infinite}
+.chev.c2{animation-delay:.15s}.chev.c3{animation-delay:.3s}
+@keyframes chev{0%,100%{opacity:.25}30%{opacity:1}}
+#count{position:absolute;font-weight:800;font-size:64px;line-height:1;color:#fff;
+  text-shadow:0 2px 12px rgba(0,0,0,.6);transform:translate(-50%,-50%);display:none}
+#ring{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;
+  border:3px solid var(--sun);display:none;animation:ring 1.2s ease-out infinite}
+@keyframes ring{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.6);opacity:0}}
+
+/* controls */
+#controls{position:fixed;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-around;
+  padding:18px 24px calc(22px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(transparent,rgba(0,0,0,.45))}
+.round{width:56px;height:56px;border-radius:50%;border:0;background:rgba(27,31,59,.72);color:#fff;
+  display:grid;place-items:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.round svg{width:26px;height:26px}
+#timerBtn{font-weight:800;font-size:15px}
+#shutter{width:80px;height:80px;border-radius:50%;border:6px solid #fff;background:var(--sun);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);transition:transform .1s}
+#shutter:active{transform:scale(.92)}
+#shutter.busy{background:var(--pink)}
+
+/* banner */
+#banner{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);background:var(--ink);color:#fff;
+  padding:14px 20px;border-radius:16px;font-weight:600;font-size:18px;text-align:center;display:none;
+  max-width:86vw;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#banner small{display:block;font-weight:400;font-size:14px;opacity:.75;margin-top:4px}
+#toast{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:10px 16px;border-radius:999px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+
+/* start */
+#start{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;
+  padding:0 28px calc(40px + env(safe-area-inset-bottom,0px));text-align:center}
+#start .big{flex:1;display:flex;align-items:flex-start;justify-content:center;width:100%;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+#start .big svg{height:min(44vh,360px);width:auto;animation:bob 1.1s ease-in-out infinite}
+#start h1{font-size:clamp(56px,16vw,96px);font-weight:800;letter-spacing:-.03em;margin:0;line-height:.9;color:var(--sun)}
+#start p{font-size:18px;line-height:1.45;max-width:30ch;margin:16px auto 28px;color:#D9DAEA}
+.cta{background:var(--sun);color:var(--ink);border:0;border-radius:999px;padding:18px 36px;font-weight:800;font-size:20px}
+#err{color:#FFB3C9;font-size:15px;line-height:1.4;max-width:34ch;margin-top:18px;display:none}
+
+/* sheet */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-height:62vh;overflow-y:auto;background:var(--sheet);color:var(--text);
+  border-radius:24px 24px 0 0;padding:8px 20px calc(28px + env(safe-area-inset-bottom,0px));
+  transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-width:640px;margin:0 auto;
+  -webkit-user-select:auto;user-select:auto}
+#sheet.open{transform:none}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheetHead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-8px;background:var(--sheet);padding:6px 0 10px;z-index:1}
+.sheetHead h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.done{background:var(--ink);color:#fff;border:0;border-radius:999px;padding:10px 20px;font-weight:600}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .done{background:var(--sun);color:var(--ink)}}
+:root[data-theme="dark"] .done{background:var(--sun);color:var(--ink)}
+section{padding:16px 0;border-top:1px solid var(--line)}
+section h3{font-size:18px;margin:0 0 4px;font-weight:800}
+.hint{color:var(--muted);font-size:14px;margin:0 0 12px;line-height:1.4}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:2px solid var(--line);background:var(--sheet-2);color:var(--text);border-radius:999px;padding:9px 14px;font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:var(--ink)}}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+.styles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.styles button{aspect-ratio:3/4;border:2px solid var(--line);border-radius:16px;background:var(--ink);display:grid;place-items:center;padding:8px}
+.styles button svg{height:78%;width:auto;overflow:visible}
+.styles button[aria-pressed="true"]{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink)}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.swatches button{width:38px;height:38px;border-radius:50%;border:3px solid var(--sheet);box-shadow:0 0 0 2px var(--line)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--text)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:12px 0}
+.row label{font-size:16px}
+.row output{font-variant-numeric:tabular-nums;color:var(--muted);min-width:3.5em;text-align:right}
+input[type=range]{flex:1;accent-color:var(--pink);min-width:0}
+.sw{appearance:none;-webkit-appearance:none;width:52px;height:30px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw:checked{background:var(--mint)}.sw:checked::after{transform:translateX(22px)}
+.dim{opacity:.4;pointer-events:none}
+.textbtn{background:none;border:0;color:var(--pink);font-weight:600;padding:8px 0;font-size:15px}
+
+/* preview */
+#preview{position:fixed;inset:0;background:rgba(10,12,28,.94);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  padding:20px 20px calc(30px + env(safe-area-inset-bottom,0px))}
+#preview img{max-width:100%;max-height:72vh;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#preview .acts{display:flex;gap:12px}
+.ghost{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:999px;padding:16px 28px;font-weight:600;font-size:18px}
+
+@media (prefers-reduced-motion:reduce){
+  #arrowBob.bounce,#start .big svg,.chev,#ring{animation:none}
+}
+</style>
+</head>
+<body>
+
+<video id="video" playsinline muted autoplay></video>
+<div id="flash"></div>
+
+<div id="arrowLayer" aria-hidden="true">
+  <div id="ring"></div>
+  <div id="arrowPos" class="off"><div id="arrowBob"><svg id="arrowSvg"></svg></div></div>
+  <div id="count"></div>
+</div>
+
+<div id="controls" hidden>
+  <button class="round" id="gear" aria-label="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
+  <button id="shutter" aria-label="Take photo"></button>
+  <button class="round" id="timerBtn" aria-label="Photo timer">3s</button>
+</div>
+
+<div id="banner"></div>
+<div id="toast" role="status"></div>
+
+<div id="start">
+  <div class="big"><svg viewBox="-50 -4 100 208" id="heroArrow"></svg></div>
+  <h1>Look here</h1>
+  <p>A big arrow points at your selfie camera, so your eyes land on the lens instead of your own face.</p>
+  <button class="cta" id="startBtn">Start camera</button>
+  <div id="err" role="alert"></div>
+</div>
+
+<div id="scrim"></div>
+<div id="sheet" role="dialog" aria-label="Settings" aria-modal="true">
+  <div class="grab"></div>
+  <div class="sheetHead"><h2>Settings</h2><button class="done" id="doneBtn">Done</button></div>
+
+  <section>
+    <h3>Where's your camera?</h3>
+    <p class="hint">Phones put the selfie camera in different spots. Pick the closest one, or tap the exact spot. <span id="orientNote"></span></p>
+    <div class="seg" id="presetSeg"></div>
+    <button class="textbtn" id="tapSet">Tap the exact spot on screen</button>
+  </section>
+
+  <section>
+    <h3>Arrow</h3>
+    <div class="styles" id="styleGrid"></div>
+    <div class="swatches" id="swatches"></div>
+    <div class="row"><label for="size">Size</label><input type="range" id="size" min="80" max="280" step="10"><output id="sizeOut"></output></div>
+    <div class="row"><label for="gap">Distance from camera</label><input type="range" id="gap" min="0" max="120" step="4"><output id="gapOut"></output></div>
+    <div class="row"><label for="bounce">Bounce</label><input type="checkbox" class="sw" id="bounce"></div>
+  </section>
+
+  <section>
+    <h3>When the arrow shows</h3>
+    <div class="seg" id="modeSeg"></div>
+    <p class="hint" id="modeHint" style="margin-top:10px"></p>
+    <div class="row"><label for="delay">Delay before it shows</label><input type="range" id="delay" min="0" max="5" step="0.5"><output id="delayOut"></output></div>
+    <div class="row" id="flashRow"><label for="flashEvery">Flash every</label><input type="range" id="flashEvery" min="1" max="6" step="0.5"><output id="flashOut"></output></div>
+  </section>
+
+  <section>
+    <h3>Taking the photo</h3>
+    <p class="hint">The countdown number appears next to the arrow, so you never have to look away from the lens.</p>
+    <div class="seg" id="timerSeg"></div>
+    <div class="row"><label for="hideFace">Blur my face during the countdown</label><input type="checkbox" class="sw" id="hideFace"></div>
+    <div class="row"><label for="mirror">Save photos mirrored, like the preview</label><input type="checkbox" class="sw" id="mirror"></div>
+  </section>
+</div>
+
+<div id="preview">
+  <img id="shot" alt="Your photo">
+  <div class="acts"><button class="ghost" id="retake">Retake</button><button class="cta" id="save">Save photo</button></div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+
+/* ---------- arrow styles (tip at 0,0, pointing up, ~100 wide x 200 tall) ---------- */
+const STYLES = {
+  cartoon:{name:'Cartoon', color:true, svg:c=>`<path d="M0 6 L40 56 L17 56 L17 192 L-17 192 L-17 56 L-40 56 Z" fill="${c}" stroke="#1B1F3B" stroke-width="8" stroke-linejoin="round"/><path d="M-6 72 V172" stroke="#fff" stroke-opacity=".55" stroke-width="6" stroke-linecap="round"/>`},
+  classic:{name:'Classic', color:true, svg:c=>`<path d="M0 0 L44 54 L16 54 L16 196 L-16 196 L-16 54 L-44 54 Z" fill="${c}"/>`},
+  sketch:{name:'Sketch', color:true, svg:c=>`<path d="M3 194 C-8 150 10 112 -3 64 C-6 40 1 22 0 5 M-32 40 C-20 26 -9 13 0 3 C9 15 21 28 33 41" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`},
+  chevrons:{name:'Chevrons', color:true, svg:c=>[6,66,126].map((y,i)=>`<path class="chev c${i+1}" d="M-40 ${y+44} L0 ${y} L40 ${y+44}" fill="none" stroke="${c}" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>`).join('')},
+  neon:{name:'Neon', color:true, svg:c=>`<path d="M0 4 L40 54 L15 54 L15 194 L-15 194 L-15 54 L-40 54 Z" fill="none" stroke="${c}" stroke-width="7" stroke-linejoin="round" style="filter:drop-shadow(0 0 5px ${c}) drop-shadow(0 0 14px ${c})"/>`},
+  wiggle:{name:'Wiggle', color:true, svg:c=>`<path d="M0 58 C26 84 -26 106 0 130 C26 154 -26 176 0 196" fill="none" stroke="${c}" stroke-width="15" stroke-linecap="round"/><path d="M0 4 L34 62 L-34 62 Z" fill="${c}" stroke="${c}" stroke-width="8" stroke-linejoin="round"/>`},
+  finger:{name:'Finger', color:false, svg:()=>`<text x="0" y="150" font-size="150" text-anchor="middle">👆</text>`},
+  rocket:{name:'Rocket', color:false, svg:()=>`<g transform="rotate(-45 0 80)"><text x="0" y="130" font-size="130" text-anchor="middle">🚀</text></g>`},
+};
+const COLORS = ['#FFD23F','#FF3E7F','#3DDC97','#4DA8FF','#FFFFFF','#FF8A1F','#B57BFF'];
+const PRESETS = [
+  {id:'tc',name:'Top middle',x:.5,y:.012},
+  {id:'tl',name:'Top left',x:.16,y:.012},
+  {id:'tr',name:'Top right',x:.84,y:.012},
+  {id:'le',name:'Left side',x:.012,y:.5},
+  {id:'re',name:'Right side',x:.988,y:.5},
+];
+const MODES = [
+  {id:'always',name:'Always',hint:'The arrow stays up whenever the camera is on.'},
+  {id:'shutter',name:'When I press the shutter',hint:'The arrow appears after you press the shutter. The photo waits until the arrow has been up for at least a second.'},
+  {id:'flash',name:'Flashes on and off',hint:'The arrow pops up for a second at a time, then stays up solid once you start a countdown.'},
+];
+const TIMERS = [0,3,5,10];
+
+/* ---------- settings ---------- */
+const DEFAULTS = {style:'cartoon',color:'#FFD23F',size:170,gap:20,bounce:true,mode:'always',delay:0,flashEvery:2,
+  timer:3,hideFace:false,mirror:true,targets:{portrait:{x:.5,y:.012},landscape:{x:.012,y:.5}}};
+let S = JSON.parse(JSON.stringify(DEFAULTS));
+try{ const saved = JSON.parse(localStorage.getItem('lookhere.v1')||'null'); if(saved) S = {...S,...saved,targets:{...S.targets,...(saved.targets||{})}}; }catch(e){}
+const persist = () => { try{ localStorage.setItem('lookhere.v1', JSON.stringify(S)); }catch(e){} };
+
+const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
+
+/* ---------- arrow rendering & placement ---------- */
+const pos = $('arrowPos'), bob = $('arrowBob'), svg = $('arrowSvg'), count = $('count'), ring = $('ring');
+function drawArrow(){
+  const st = STYLES[S.style] || STYLES.cartoon;
+  const w = S.size*0.5, h = S.size;
+  svg.setAttribute('viewBox','-50 -4 100 208');
+  svg.setAttribute('width',w); svg.setAttribute('height',h);
+  svg.innerHTML = st.svg(S.color);
+  bob.style.left = (-w/2)+'px'; bob.style.top = '0px';
+  bob.classList.toggle('bounce', S.bounce);
+  layout();
+}
+function layout(){
+  const W = innerWidth, H = innerHeight, t = S.targets[orient()];
+  const tx = t.x*W, ty = t.y*H, cx = W/2, cy = H/2;
+  let dx = tx-cx, dy = ty-cy; const len = Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+  const gap = S.gap + 10;
+  const tipX = tx - dx*gap, tipY = ty - dy*gap;
+  const ang = Math.atan2(dx,-dy)*180/Math.PI;
+  pos.style.left = tipX+'px'; pos.style.top = tipY+'px';
+  pos.style.transform = `rotate(${ang}deg)`;
+  const tail = gap + S.size + 46;
+  count.style.left = (tx - dx*tail)+'px'; count.style.top = (ty - dy*tail)+'px';
+  ring.style.left = tx+'px'; ring.style.top = ty+'px';
+}
+addEventListener('resize', () => { layout(); renderPresets(); });
+
+/* ---------- visibility controller ---------- */
+let visTimers = [], forced = false, busy = false;
+const setVisible = v => pos.classList.toggle('off', !v);
+function clearVis(){ visTimers.forEach(clearTimeout); visTimers = []; }
+function later(fn, ms){ visTimers.push(setTimeout(fn, ms)); }
+function applyMode(){
+  clearVis();
+  if(forced){ setVisible(true); return; }
+  if(busy) return;
+  setVisible(false);
+  if(S.mode === 'always') later(()=>setVisible(true), S.delay*1000);
+  else if(S.mode === 'flash'){
+    const cycle = () => { setVisible(true); later(()=>{ setVisible(false); later(cycle, S.flashEvery*1000); }, 1000); };
+    later(cycle, S.delay*1000);
+  }
+}
+
+/* ---------- camera ---------- */
+const video = $('video');
+let stream = null;
+async function startCamera(){
+  const err = $('err'); err.style.display = 'none';
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    return showErr("This browser can't open the camera. Open the page in Safari or Chrome on your phone.");
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
+    video.srcObject = stream; await video.play().catch(()=>{});
+    $('start').style.display = 'none'; $('controls').hidden = false;
+    drawArrow(); applyMode();
+  }catch(e){
+    if(e.name === 'NotAllowedError') showErr("Camera access is blocked. Allow the camera for this page in your browser's settings, then tap Start camera again. If you're viewing this inside the Claude app, open the link in your phone's browser instead.");
+    else if(e.name === 'NotFoundError' || e.name === 'OverconstrainedError') showErr('No front camera was found on this device.');
+    else showErr("The camera didn't start (" + e.name + "). Close other apps using the camera and try again.");
+  }
+}
+function showErr(m){ const err = $('err'); err.textContent = m; err.style.display = 'block'; }
+$('startBtn').onclick = startCamera;
+
+/* ---------- shutter & countdown ---------- */
+const timerBtn = $('timerBtn');
+const timerLabel = () => S.timer ? S.timer+'s' : 'Off';
+function syncTimerBtn(){ timerBtn.textContent = timerLabel(); timerBtn.setAttribute('aria-label','Photo timer: '+timerLabel()); }
+timerBtn.onclick = () => { S.timer = TIMERS[(TIMERS.indexOf(S.timer)+1)%TIMERS.length]; persist(); syncTimerBtn(); renderSeg('timerSeg'); toast('Timer '+timerLabel()); };
+
+$('shutter').onclick = () => {
+  if(busy){ cancelCountdown(); return; }
+  let total = S.timer;
+  if(S.mode === 'shutter') total = Math.max(S.timer, Math.ceil(S.delay + 1));
+  if(total === 0){ capture(); return; }
+  busy = true; $('shutter').classList.add('busy'); $('shutter').setAttribute('aria-label','Cancel countdown');
+  clearVis();
+  if(S.mode === 'shutter'){ setVisible(false); later(()=>setVisible(true), S.delay*1000); }
+  else setVisible(true);
+  if(S.hideFace) video.classList.add('hidden-face');
+  let left = total; count.textContent = left; count.style.display = 'block';
+  const tick = () => {
+    left--;
+    if(left <= 0){ count.style.display = 'none'; capture(); endCountdown(); return; }
+    count.textContent = left; later(tick, 1000);
+  };
+  later(tick, 1000);
+};
+function endCountdown(){
+  busy = false; clearVis(); count.style.display = 'none'; video.classList.remove('hidden-face');
+  $('shutter').classList.remove('busy'); $('shutter').setAttribute('aria-label','Take photo');
+}
+function cancelCountdown(){ endCountdown(); applyMode(); }
+
+/* ---------- capture & save ---------- */
+let lastBlob = null, lastUrl = null;
+function capture(){
+  const w = video.videoWidth, h = video.videoHeight; if(!w) return;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  if(S.mirror){ ctx.translate(w,0); ctx.scale(-1,1); }
+  ctx.drawImage(video,0,0,w,h);
+  const f = $('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+  c.toBlob(b => {
+    lastBlob = b; if(lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = URL.createObjectURL(b);
+    $('shot').src = lastUrl; $('preview').style.display = 'flex'; clearVis(); setVisible(false);
+  }, 'image/jpeg', 0.92);
+}
+$('retake').onclick = () => { $('preview').style.display = 'none'; applyMode(); };
+
+let downloadsP = null;
+try{ if(window.claude && window.claude.use) downloadsP = window.claude.use('downloads'); }catch(e){}
+$('save').onclick = async () => {
+  if(!lastBlob) return;
+  const name = 'look-here-' + new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + '.jpg';
+  let dl = null;
+  if(downloadsP){ try{ dl = await Promise.race([downloadsP, new Promise(r=>setTimeout(()=>r(null),1500))]); }catch(e){ dl = null; } }
+  if(dl){
+    try{ await dl.save({filename:name, data:lastBlob}); toast('Photo saved'); }
+    catch(e){ if(e && e.code !== 'declined') toast("This view can't save files. Long-press the photo to save it."); }
+    return;
+  }
+  if(navigator.canShare){
+    const file = new File([lastBlob], name, {type:'image/jpeg'});
+    if(navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); return; }catch(e){ if(e.name==='AbortError') return; } }
+  }
+  const a = document.createElement('a'); a.href = lastUrl; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  toast('Photo saved');
+};
+
+/* ---------- settings sheet ---------- */
+const sheet = $('sheet'), scrim = $('scrim');
+function openSheet(){ forced = true; applyMode(); renderAll(); scrim.style.display = 'block'; sheet.classList.add('open'); $('doneBtn').focus(); }
+function closeSheet(){ sheet.classList.remove('open'); scrim.style.display = 'none'; forced = false; persist(); applyMode(); }
+$('gear').onclick = openSheet; $('doneBtn').onclick = closeSheet; scrim.onclick = closeSheet;
+addEventListener('keydown', e => { if(e.key === 'Escape' && sheet.classList.contains('open')) closeSheet(); });
+
+function segButtons(el, items, isOn, onPick){
+  el.innerHTML = '';
+  items.forEach(it => {
+    const b = document.createElement('button'); b.textContent = it.name;
+    b.setAttribute('aria-pressed', isOn(it)); b.onclick = () => { onPick(it); persist(); };
+    el.appendChild(b);
+  });
+}
+function renderPresets(){
+  const t = S.targets[orient()];
+  segButtons($('presetSeg'), PRESETS, p => Math.abs(p.x-t.x)<.001 && Math.abs(p.y-t.y)<.001,
+    p => { S.targets[orient()] = {x:p.x,y:p.y}; layout(); renderPresets(); });
+  $('orientNote').textContent = orient()==='landscape' ? 'This is saved for landscape; portrait keeps its own spot.' : 'This is saved for portrait; landscape keeps its own spot.';
+}
+function renderSeg(id){
+  if(id==='timerSeg') segButtons($('timerSeg'), TIMERS.map(t=>({id:t,name:t?t+' seconds':'No timer'})), t=>t.id===S.timer, t=>{S.timer=t.id; syncTimerBtn(); renderSeg('timerSeg');});
+  if(id==='modeSeg'){
+    segButtons($('modeSeg'), MODES, m=>m.id===S.mode, m=>{S.mode=m.id; renderSeg('modeSeg');});
+    $('modeHint').textContent = MODES.find(m=>m.id===S.mode).hint;
+    $('flashRow').classList.toggle('dim', S.mode!=='flash');
+  }
+}
+function renderStyles(){
+  const g = $('styleGrid'); g.innerHTML = '';
+  Object.entries(STYLES).forEach(([k,st]) => {
+    const b = document.createElement('button'); b.setAttribute('aria-label', st.name+' arrow'); b.setAttribute('aria-pressed', k===S.style);
+    b.innerHTML = `<svg viewBox="-50 -4 100 208">${st.svg(S.color)}</svg>`;
+    b.onclick = () => { S.style = k; persist(); drawArrow(); renderStyles(); };
+    g.appendChild(b);
+  });
+  const sw = $('swatches'); sw.innerHTML = '';
+  sw.classList.toggle('dim', !STYLES[S.style].color);
+  COLORS.forEach(c => {
+    const b = document.createElement('button'); b.style.background = c; b.setAttribute('aria-label','Color '+c); b.setAttribute('aria-pressed', c===S.color);
+    b.onclick = () => { S.color = c; persist(); drawArrow(); renderStyles(); };
+    sw.appendChild(b);
+  });
+}
+function bindRange(id, key, fmt, after){
+  const el = $(id), out = $(id.replace(/Every$/,'')+'Out') || $(id+'Out');
+  el.value = S[key]; out.textContent = fmt(S[key]);
+  el.oninput = () => { S[key] = +el.value; out.textContent = fmt(S[key]); after && after(); };
+  el.onchange = persist;
+}
+function bindSwitch(id, key, after){ const el = $(id); el.checked = S[key]; el.onchange = () => { S[key] = el.checked; persist(); after && after(); }; }
+function renderAll(){
+  renderPresets(); renderStyles(); renderSeg('modeSeg'); renderSeg('timerSeg');
+  bindRange('size','size',v=>v+' px',drawArrow);
+  bindRange('gap','gap',v=>v+' px',layout);
+  bindRange('delay','delay',v=>v?v+' s':'None');
+  $('flashOut').textContent = S.flashEvery+' s';
+  $('flashEvery').value = S.flashEvery;
+  $('flashEvery').oninput = () => { S.flashEvery = +$('flashEvery').value; $('flashOut').textContent = S.flashEvery+' s'; };
+  $('flashEvery').onchange = persist;
+  bindSwitch('bounce','bounce',drawArrow); bindSwitch('hideFace','hideFace'); bindSwitch('mirror','mirror');
+}
+
+/* ---------- tap to set camera spot ---------- */
+const banner = $('banner');
+$('tapSet').onclick = () => {
+  sheet.classList.remove('open'); scrim.style.display = 'none';
+  banner.innerHTML = 'Tap where your selfie camera is<small>Tap right on the notch or camera hole</small>';
+  banner.style.display = 'block'; ring.style.display = 'block';
+  const catcher = document.createElement('div');
+  catcher.style.cssText = 'position:fixed;inset:0;z-index:50;cursor:crosshair';
+  document.body.appendChild(catcher);
+  const move = e => { ring.style.left = e.clientX+'px'; ring.style.top = e.clientY+'px'; };
+  catcher.addEventListener('pointermove', move);
+  catcher.addEventListener('pointerup', e => {
+    S.targets[orient()] = {x:e.clientX/innerWidth, y:e.clientY/innerHeight};
+    persist(); layout(); catcher.remove(); banner.style.display = 'none';
+    setTimeout(()=>{ ring.style.display = 'none'; }, 1200);
+    toast('Camera spot saved'); openSheet();
+  }, {once:true});
+};
+
+let toastT; function toast(m){ const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 1800); }
+
+/* ---------- boot ---------- */
+$('heroArrow').innerHTML = STYLES.cartoon.svg('#FFD23F');
+syncTimerBtn(); drawArrow();
+document.addEventListener('visibilitychange', () => { if(!document.hidden && stream) video.play().catch(()=>{}); });
+})();
+</script>
+</body>
+</html>
